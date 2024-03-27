@@ -87,7 +87,6 @@ generator(train_path, folders, 10)
 # %%
 # %%
 #region generator_sample
-import math
 def generator(source_path, folder_list, batch_size):
     print( 'Source path = ', source_path, '; batch size =', batch_size)
     img_idx =  #create a list of image numbers you want to use for a particular video

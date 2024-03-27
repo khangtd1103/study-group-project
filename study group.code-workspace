@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"cody.autocomplete.enabled": false,
+		"cody.commandCodeLenses": true,
+		"cody.experimental.guardrails": true,
+		"cody.experimental.localSymbols": true,
+		"cody.debug.verbose": true,
+		"cody.experimental.ollamaChat": true
+	}
+}

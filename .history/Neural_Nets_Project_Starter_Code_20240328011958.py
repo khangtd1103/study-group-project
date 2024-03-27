@@ -87,7 +87,7 @@ generator(train_path, folders, 10)
 # %%
 # %%
 #region generator_sample
-import math
+#region generator_sample
 def generator(source_path, folder_list, batch_size):
     print( 'Source path = ', source_path, '; batch size =', batch_size)
     img_idx =  #create a list of image numbers you want to use for a particular video
@@ -96,7 +96,7 @@ def generator(source_path, folder_list, batch_size):
         num_batches = len(folder_list)/batch_size # calculate the number of batches
         print(num_batches)
         # create empty containers for the batch
-        for batch in range(math.floor(num_batches)): # we iterate over the number of batches
+        for batch in range(num_batches): # we iterate over the number of batches
             batch_data = np.zeros((batch_size,x,y,z,3)) # x is the number of images you use for each video, (y,z) is the final size of the input images and 3 is the number of channels RGB
             batch_labels = np.zeros((batch_size,5)) # batch_labels is the one hot representation of the output
             for folder in range(batch_size): # iterate over the batch_size
@@ -117,7 +117,7 @@ def generator(source_path, folder_list, batch_size):
         
         # write the code for the remaining data points which are left after full batches
 
-#endregion generator_sample
+
 # %% [markdown]
 # Note here that a video is represented above in the generator as (number of images, height, width, number of channels). Take this into consideration while creating the model architecture.
 
