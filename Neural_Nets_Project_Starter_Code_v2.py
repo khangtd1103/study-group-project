@@ -557,6 +557,7 @@ def generator(source_path, folder_list, batch_size):
  
 # generator(train_path, folders, 10)      
 # %% [markdown]
+#region tesing
 # ### Test the Generator
 # %%
 # Test the generator function
@@ -584,48 +585,19 @@ for batch_data, batch_labels in gen:
 
 # Display the dataframe
 display(df)
+#endregion tesing
+#endregion final_generator
 # %% [markdown]
 # Note here that a video is represented above in the generator as (number of images, height, width, number of channels). Take this into consideration while creating the model architecture.
-
-# %% 
-# initialize generator parameters
-img_idx, x, y, z = init_gen_params(7,120,120)
-
-# Test the generator function
-source_path = train_dir
-folder_list = train_doc
-batch_size = 10
-
-# Initialize the generator
-#tag explain # folder_list is basically the data within the csv file(folder_name;gesture_name;int_value)
-gen = generator(source_path, folder_list, batch_size)
-
-# Create an empty dataframe to store batch data and labels
-df = pd.DataFrame(columns=['batch_data shape', 'batch_labels shape', 'current batch'])
-
-# Get the first batch of data
-batch_data, batch_labels, batch = next(gen)
-
-temp_df = pd.DataFrame({
-        'batch_data shape': [list(batch_data.shape)],
-        'batch_labels shape': [list(batch_labels.shape)],
-        'current batch': batch
-    })
-df = pd.concat([df, temp_df], ignore_index=True)
-
-# Display the dataframe
-display(df)
-    
-#endregion final_generator
 # %%
 curr_dt_time = datetime.datetime.now()
-train_path = '/notebooks/storage/Final_data/Collated_training/train'
-val_path = '/notebooks/storage/Final_data/Collated_training/val'
+train_path = 'Project_data/train'
+val_path = 'Project_data/val'
 num_train_sequences = len(train_doc)
 print('# training sequences =', num_train_sequences)
 num_val_sequences = len(val_doc)
 print('# validation sequences =', num_val_sequences)
-num_epochs = # choose the number of epochs
+num_epochs = 10 # choose the number of epochs
 print ('# epochs =', num_epochs)
 
 # %% [markdown]
@@ -635,17 +607,28 @@ print ('# epochs =', num_epochs)
 # %%
 from keras.models import Sequential, Model
 from keras.layers import Dense, GRU, Flatten, TimeDistributed, Flatten, BatchNormalization, Activation
-from keras.layers.convolutional import Conv3D, MaxPooling3D
+from keras.layers import Conv3D, MaxPooling3D
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras import optimizers
 
 #write your model here
+model = Sequential()
+model.add(Conv3D(32, kernel_size=(1, 3, 3), activation='relu',padding="same", input_shape=(x, y, z, 3)))
+model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+model.add(Conv3D(64, kernel_size=(1, 3, 3), activation='relu', padding="same"))
+model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+model.add(Conv3D(128, kernel_size=(1, 3, 3), activation='relu',padding="same"))
+model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dense(5, activation='softmax'))
 
 # %% [markdown]
 # Now that you have written the model, the next step is to `compile` the model. When you print the `summary` of the model, you'll see the total number of parameters you have to train.
 
 # %%
-optimiser = #write your optimizer
+from keras.optimizers import Adam # import to use the optimizer
+optimiser = Adam() #write your optimizers
 model.compile(optimizer=optimiser, loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 print (model.summary())
 
@@ -662,11 +645,27 @@ model_name = 'model_init' + '_' + str(curr_dt_time).replace(' ','').replace(':',
 if not os.path.exists(model_name):
     os.mkdir(model_name)
         
-filepath = model_name + 'model-{epoch:05d}-{loss:.5f}-{categorical_accuracy:.5f}-{val_loss:.5f}-{val_categorical_accuracy:.5f}.h5'
+filepath = model_name + 'model-{epoch:05d}-{loss:.5f}-{categorical_accuracy:.5f}-{val_loss:.5f}-{val_categorical_accuracy:.5f}.weights.h5'
 
-checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=False, mode='auto', period=1)
+#tag error 
+'''checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=False, mode='auto', period=1)'''
+# TypeError: ModelCheckpoint.__init__() got an unexpected keyword argument 'period'
 
-LR = # write the REducelronplateau code here
+#tag error
+'''
+ValueError: The filepath provided must end in `.keras` (Keras model format). Received: filepath=model_init_2024-03-3115_06_39.122125/model-{epoch:05d}-{loss:.5f}-{categorical_accuracy:.5f}-{val_loss:.5f}-{val_categorical_accuracy:.5f}.h5
+The error message is indicating that the filepath provided must end in .keras (Keras model format). However, in your code, you are trying to save the model in .h5 format.
+To resolve this, you can either:
+Change the file extension in your filepath variable to .keras if you want to save the entire model.
+Set save_weights_only=True if you intend to save only the weights
+'''
+
+checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=True, mode='auto', save_freq='epoch')
+
+
+
+LR = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
+                              patience=5, min_lr=0.001) # write the REducelronplateau code here
 callbacks_list = [checkpoint, LR]
 
 # %% [markdown]
@@ -687,10 +686,14 @@ else:
 # Let us now fit the model. This will start training the model and with the help of the checkpoints, you'll be able to save the model at the end of each epoch.
 
 # %%
-model.fit_generator(train_generator, steps_per_epoch=steps_per_epoch, epochs=num_epochs, verbose=1, 
+#tag error 
+'''The fit_generator method has been deprecated in TensorFlow 2.1.0 and later versions. Instead, you should use the fit method, which now supports generators'''
+model.fit(train_generator, steps_per_epoch=steps_per_epoch, epochs=num_epochs, verbose=1, 
                     callbacks=callbacks_list, validation_data=val_generator, 
-                    validation_steps=validation_steps, class_weight=None, workers=1, initial_epoch=0)
+                    validation_steps=validation_steps, class_weight=None, initial_epoch=0)
 
 
 
 
+
+# %%
