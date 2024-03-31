@@ -399,6 +399,7 @@ t = np.random.permutation(train_doc)
 print(f"Number of full batches: {num_full_batches}")
 print(f"Number of remaining images: {remaining_num}")
 # %%
+%%script echo "skipped, open later"
 import matplotlib.pyplot as plt # import to use plt.imshow() function
 from skimage.transform import resize # import to use resize() function
 
@@ -456,8 +457,7 @@ print("batch_labels:\n", batch_labels)
 # %% [markdown]
 # ## Final Generator
 # %%
-#region test_generator
-import sys # import to use sys.exit() function
+#region final_generator
 from IPython.display import display # import to use display() function
 import pandas as pd # import to use pandas.DataFrame() function
 # from scipy.misc import imresize
@@ -471,7 +471,7 @@ def generator(source_path, folder_list, batch_size):
     print( 'Source path =', source_path, '; batch size =', batch_size)
     #tag todo # examine representative folders to determine similarities between images
     #tag todo # I think 5 would be suffice for img_idx
-    img_idx = img_idx  #create a list of image numbers you want to use for a particular video
+    # img_idx = img_idx  #create a list of image numbers you want to use for a particular video
     print("img_idx =", img_idx)
     t = np.random.permutation(folder_list)
     num_batches = len(folder_list)/batch_size # calculate the number of batches
@@ -480,7 +480,6 @@ def generator(source_path, folder_list, batch_size):
     remaining_num = len(folder_list) % batch_size
     print("num_batches =", num_batches)
     # create empty containers for the batch
-    print("\npermutated folder_list, first 5 elements of t: \n", t[:5],"\n")
     for batch in range(num_full_batches): # we iterate over the number of batches
         batch_data = np.zeros((batch_size,x,y,z,3)) # x is the number of images you use for each video,(y,z) is the final size of the input images and 3 is the number of channels RGB
         batch_labels = np.zeros((batch_size,5)) # batch_labels is the one hot representation of the output
@@ -494,17 +493,10 @@ def generator(source_path, folder_list, batch_size):
             #tag remove_later # display(pd.DataFrame(imgs, columns=['imgs']))
             #tag improve # img_idx = [i - 1 for i in range(0, len(imgs), 5)]
             for idx, item in enumerate (img_idx): #  Iterate over the frames/images of a folder to read them in
-                fig, axs = plt.subplots(ncols=2, figsize=(12, 5))
-
                 image_orig = imageio.v3.imread(source_path+'/'+ t[folder + (batch*batch_size)].strip().split(';')[0]+'/'+imgs[item]).astype(np.float32)
                 #tag solved # Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
                 # normalize the image
                 # image_orig = image_orig/255
-
-                axs[0].imshow(image_orig/255)
-                axs[0].axis('off')
-                axs[0].set_title(f"Image {imgs[item]}\nindex={item}; size={image_orig.shape[:2]}")
-
 
                 #tag todo # crop and resize the images
                 '''
@@ -528,12 +520,6 @@ def generator(source_path, folder_list, batch_size):
                 batch_data[folder,idx,:,:,1] = image_resized[:,:,1] / pixel_vector_norm #normalise and feed in the image
                 batch_data[folder,idx,:,:,2] = image_resized[:,:,2] / pixel_vector_norm #normalise and feed in the image
 
-                image_norm = create_img([image_resized, image_resized[:,:,0]/pixel_vector_norm, image_resized[:,:,1]/pixel_vector_norm, image_resized[:,:,2]/pixel_vector_norm])
-                axs[1].imshow(image_norm)
-                axs[1].axis('off')
-                axs[1].set_title(f"size={image_resized.shape[:2]}")
-                plt.show()
-
                 #tag counter_end 
                 
             batch_labels[folder, int(t[folder + (batch*batch_size)].strip().split(';')[2])] = 1
@@ -548,12 +534,7 @@ def generator(source_path, folder_list, batch_size):
             imgs = sorted(imgs)
 
             for idx,item in enumerate(img_idx):
-                fig, axs = plt.subplots(ncols=2, figsize=(12, 5))
                 image_orig = imageio.v3.imread(source_path+'/'+t[folder + (num_full_batches*batch_size)].strip().split(';')[0]+'/'+imgs[item]).astype(np.float32)
-
-                axs[0].imshow(image_orig/255)
-                axs[0].axis('off')
-                axs[0].set_title(f"Image {imgs[item]}\nindex={item}; size={image_orig.shape[:2]}")
                 
                 #scale image
                 image_scaled = image_orig/255
@@ -571,23 +552,71 @@ def generator(source_path, folder_list, batch_size):
                 batch_data[folder,idx,:,:,1] = image_resized[:,:,1] / pixel_vector_norm #normalise and feed in the image
                 batch_data[folder,idx,:,:,2] = image_resized[:,:,2] / pixel_vector_norm #normalise and feed in the image
 
-                image_norm = create_img([image_resized, image_resized[:,:,0]/pixel_vector_norm, image_resized[:,:,1]/pixel_vector_norm, image_resized[:,:,2]/pixel_vector_norm])
-                axs[1].imshow(image_norm)
-                axs[1].axis('off')
-                axs[1].set_title(f"size={image_resized.shape[:2]}")
-                plt.show()
-
             batch_labels[folder, int(t[folder + (num_full_batches*batch_size)].strip().split(';')[2])] = 1
         yield batch_data, batch_labels
-
  
-# generator(train_path, folders, 10)       
+# generator(train_path, folders, 10)      
+# %% [markdown]
+# ### Test the Generator
+# %%
+# Test the generator function
+source_path = train_dir
+folder_list = train_doc
+batch_size = 10
+
+# Initialize the generator
 #tag explain # folder_list is basically the data within the csv file(folder_name;gesture_name;int_value)
-generator(train_dir, train_doc, 10)                
-#endregion test_generator
+gen = generator(source_path, folder_list, batch_size)
+
+# Create an empty dataframe to store batch data and labels
+df = pd.DataFrame(columns=['batch_data shape', 'batch_labels shape'])
+
+# Iterate over all batches in gen
+for batch_data, batch_labels in gen:
+    # Create a temporary dataframe for the current batch
+    temp_df = pd.DataFrame({
+        'batch_data shape': [list(batch_data.shape)],
+        'batch_labels shape': [list(batch_labels.shape)],
+    })
+
+    # Append the temporary dataframe to the main dataframe
+    df = pd.concat([df, temp_df], ignore_index=True)
+
+# Display the dataframe
+display(df)
 # %% [markdown]
 # Note here that a video is represented above in the generator as (number of images, height, width, number of channels). Take this into consideration while creating the model architecture.
 
+# %% 
+# initialize generator parameters
+img_idx, x, y, z = init_gen_params(7,120,120)
+
+# Test the generator function
+source_path = train_dir
+folder_list = train_doc
+batch_size = 10
+
+# Initialize the generator
+#tag explain # folder_list is basically the data within the csv file(folder_name;gesture_name;int_value)
+gen = generator(source_path, folder_list, batch_size)
+
+# Create an empty dataframe to store batch data and labels
+df = pd.DataFrame(columns=['batch_data shape', 'batch_labels shape', 'current batch'])
+
+# Get the first batch of data
+batch_data, batch_labels, batch = next(gen)
+
+temp_df = pd.DataFrame({
+        'batch_data shape': [list(batch_data.shape)],
+        'batch_labels shape': [list(batch_labels.shape)],
+        'current batch': batch
+    })
+df = pd.concat([df, temp_df], ignore_index=True)
+
+# Display the dataframe
+display(df)
+    
+#endregion final_generator
 # %%
 curr_dt_time = datetime.datetime.now()
 train_path = '/notebooks/storage/Final_data/Collated_training/train'
