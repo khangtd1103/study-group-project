@@ -1075,3 +1075,5 @@ plt.title('Training and Validation Loss')
 # Displaying the plot
 plt.show()
 # %%
+model.load_weights('./model_init_2024-04-0314_45_06.392266/model-00019-0.00724-0.99849-0.26904-0.94000.weights.h5')
+model.evaluate(val_gen, steps=validation_steps)
