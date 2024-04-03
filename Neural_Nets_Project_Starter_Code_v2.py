@@ -48,6 +48,7 @@ tf.random.set_seed(30)
 train_doc = np.random.permutation(open('Project_data/train.csv').readlines())
 train_dir = 'Project_data/train'
 val_doc = np.random.permutation(open('Project_data/val.csv').readlines())
+val_dir = 'Project_data/val'
 batch_size = 10 #experiment with the batch size
 #endregion read_folders
 
@@ -200,7 +201,7 @@ print("[train_grouped_imgs] Number of images for each size:", str(dict_lengths).
 # %%
 
 # init_gen_param
-def init_gen_params(num_frames, x, y):
+def init_gen_params(num_frames, y, z):
     # Initialize img_idx using num_frames
     img_idx = [int(num) for num in np.linspace(0,29,num_frames)]
     # Define x,y,z
@@ -243,6 +244,7 @@ def crop_image(origin_image, height_width):
 # %% [markdown]
 # #### test resize + crop
 # %%
+# %%script echo "skipped: open later"
 #region test_resize
 # Test the resize and crop for both group of image sizes
 from skimage.transform import resize # import to use resize() function
@@ -354,6 +356,7 @@ def std_mean(args):
 # %% [markdown]
 # #### Execution
 # %%
+# %%script echo "skipped: open later"
 # Load the sample images
 selected_imgs_read = [imageio.v3.imread(sample_img) for sample_img in selected_imgs]
 
@@ -399,7 +402,7 @@ t = np.random.permutation(train_doc)
 print(f"Number of full batches: {num_full_batches}")
 print(f"Number of remaining images: {remaining_num}")
 # %%
-%%script echo "skipped, open later"
+# %%script echo "skipped, open later"
 import matplotlib.pyplot as plt # import to use plt.imshow() function
 from skimage.transform import resize # import to use resize() function
 
@@ -465,126 +468,138 @@ import pandas as pd # import to use pandas.DataFrame() function
 from skimage.transform import resize # import to use resize() function
 
 # initialize generator parameters
-img_idx, x, y, z = init_gen_params(7,120,120)
+img_idx, x, y, z = init_gen_params(9,120,120)
 
 def generator(source_path, folder_list, batch_size):
-    print( 'Source path =', source_path, '; batch size =', batch_size)
-    #tag todo # examine representative folders to determine similarities between images
-    #tag todo # I think 5 would be suffice for img_idx
-    # img_idx = img_idx  #create a list of image numbers you want to use for a particular video
-    print("img_idx =", img_idx)
-    t = np.random.permutation(folder_list)
-    num_batches = len(folder_list)/batch_size # calculate the number of batches
-    num_full_batches = len(folder_list)//batch_size
-    #tag newly_added
-    remaining_num = len(folder_list) % batch_size
-    print("num_batches =", num_batches)
-    # create empty containers for the batch
-    for batch in range(num_full_batches): # we iterate over the number of batches
-        batch_data = np.zeros((batch_size,x,y,z,3)) # x is the number of images you use for each video,(y,z) is the final size of the input images and 3 is the number of channels RGB
-        batch_labels = np.zeros((batch_size,5)) # batch_labels is the one hot representation of the output
-        for folder in range(batch_size): # iterate over the batch_size
-            #tag explain # imgs use listdir to acquire all files (images) within the folder
-            imgs = os.listdir(source_path+'/'+ t[folder + (batch*batch_size)].split(';')[0]) # read all the images in the folder
-            imgs = sorted(imgs)
-            #tag examine # imgs
-            # for i, img in enumerate(imgs):
-                # display(f"Index: {i}, Image: {img}")
-            #tag remove_later # display(pd.DataFrame(imgs, columns=['imgs']))
-            #tag improve # img_idx = [i - 1 for i in range(0, len(imgs), 5)]
-            for idx, item in enumerate (img_idx): #  Iterate over the frames/images of a folder to read them in
-                image_orig = imageio.v3.imread(source_path+'/'+ t[folder + (batch*batch_size)].strip().split(';')[0]+'/'+imgs[item]).astype(np.float32)
-                #tag solved # Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
-                # normalize the image
-                # image_orig = image_orig/255
+    while True:
+        '''print( 'Source path =', source_path, '; batch size =', batch_size)
+        print("source_path:", source_path)
+        print("folder_list:", folder_list.shape)
+        print("batch_size:", batch_size)'''
+        #tag todo # examine representative folders to determine similarities between images
+        #tag todo # I think 5 would be suffice for img_idx
+        # img_idx = img_idx  #create a list of image numbers you want to use for a particular video
+        '''print("img_idx =", img_idx)'''
+        t = np.random.permutation(folder_list)
+        num_batches = len(folder_list)/batch_size # calculate the number of batches
+        num_full_batches = len(folder_list)//batch_size
+        #tag newly_added
+        remaining_num = len(folder_list) % batch_size
+        '''print("num_batches =", num_batches)'''
+        # create empty containers for the batch
+        for batch in range(num_full_batches): # we iterate over the number of batches
+            batch_data = np.zeros((batch_size,x,y,z,3)) # x is the number of images you use for each video,(y,z) is the final size of the input images and 3 is the number of channels RGB
+            batch_labels = np.zeros((batch_size,5)) # batch_labels is the one hot representation of the output
+            for folder in range(batch_size): # iterate over the batch_size
 
-                #tag todo # crop and resize the images
-                '''
-                crop the images and resize them. Note that the images are of 2 different shape 
-                and the conv3D will throw error if the inputs in a batch have different shapes
-                '''
-                #scale image
-                image_scaled = image_orig/255
-                # crop the image
-                #tag updated # add crop function
-                image_cropped = crop_image(image_scaled, image_scaled.shape[:2])
-                # resize the image
-                image_resized = resize(image_cropped, (120, 120))
+                #tag explain # imgs use listdir to acquire all files (images) within the folder
+                imgs = os.listdir(source_path+'/'+ t[folder + (batch*batch_size)].split(';')[0]) # read all the images in the folder
+                imgs = sorted(imgs)
+                #tag examine # imgs
+                # for i, img in enumerate(imgs):
+                    # display(f"Index: {i}, Image: {img}")
+                #tag remove_later # display(pd.DataFrame(imgs, columns=['imgs']))
+                #tag improve # img_idx = [i - 1 for i in range(0, len(imgs), 5)]
+                for idx, item in enumerate (img_idx): #  Iterate over the frames/images of a folder to read them in
+                    image_orig = imageio.v3.imread(source_path+'/'+ t[folder + (batch*batch_size)].strip().split(';')[0]+'/'+imgs[item]).astype(np.float32)
+                    #tag solved # Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
+                    # normalize the image
+                    # image_orig = image_orig/255
 
-                # Calculate the normalized pixel intensity of the image
-                pixel_vector_norm = np.sqrt(image_resized[:,:,0]**2 + image_resized[:,:,1]**2 + image_resized[:,:,2]**2)
-                # Avoid division by zero
-                pixel_vector_norm[pixel_vector_norm==0] = 1
+                    #tag todo # crop and resize the images
+                    '''
+                    crop the images and resize them. Note that the images are of 2 different shape 
+                    and the conv3D will throw error if the inputs in a batch have different shapes
+                    '''
+                    #scale image
+                    image_scaled = image_orig/255
+                    # crop the image
+                    #tag updated # add crop function
+                    image_cropped = crop_image(image_scaled, image_scaled.shape[:2])
+                    # resize the image
+                    image_resized = resize(image_cropped, (120, 120))
 
-                batch_data[folder,idx,:,:,0] = image_resized[:,:,0] / pixel_vector_norm #normalise and feed in the image
-                batch_data[folder,idx,:,:,1] = image_resized[:,:,1] / pixel_vector_norm #normalise and feed in the image
-                batch_data[folder,idx,:,:,2] = image_resized[:,:,2] / pixel_vector_norm #normalise and feed in the image
+                    # Calculate the normalized pixel intensity of the image
+                    pixel_vector_norm = np.sqrt(image_resized[:,:,0]**2 + image_resized[:,:,1]**2 + image_resized[:,:,2]**2)
+                    # Avoid division by zero
+                    pixel_vector_norm[pixel_vector_norm==0] = 1
 
-                #tag counter_end 
-                
-            batch_labels[folder, int(t[folder + (batch*batch_size)].strip().split(';')[2])] = 1
-        yield batch_data, batch_labels #you yield the batch_data and the batch_labels, remember what does yield do
+                    batch_data[folder,idx,:,:,0] = image_resized[:,:,0] / pixel_vector_norm #normalise and feed in the image
+                    batch_data[folder,idx,:,:,1] = image_resized[:,:,1] / pixel_vector_norm #normalise and feed in the image
+                    batch_data[folder,idx,:,:,2] = image_resized[:,:,2] / pixel_vector_norm #normalise and feed in the image
 
-        # handle remaining data points after full batches
-    if remaining_num > 0:
-        batch_data = np.zeros((remaining_num,len(img_idx),120,120,3))
-        batch_labels = np.zeros((remaining_num, 5))
-        for folder in range(remaining_num):
-            imgs = os.listdir(source_path+'/'+ t[folder + (num_full_batches*batch_size)].split(';')[0]) # read all the images in the folder
-            imgs = sorted(imgs)
+                    #tag counter_end 
+                    
+                batch_labels[folder, int(t[folder + (batch*batch_size)].strip().split(';')[2])] = 1
+            yield batch_data, batch_labels #you yield the batch_data and the batch_labels, remember what does yield do
 
-            for idx,item in enumerate(img_idx):
-                image_orig = imageio.v3.imread(source_path+'/'+t[folder + (num_full_batches*batch_size)].strip().split(';')[0]+'/'+imgs[item]).astype(np.float32)
-                
-                #scale image
-                image_scaled = image_orig/255
-                # crop the image
-                image_cropped = crop_image(image_scaled, image_scaled.shape[:2])
-                # resize the image
-                image_resized = resize(image_cropped, (120, 120))
+            # handle remaining data points after full batches
+        if remaining_num > 0:
+            batch_data = np.zeros((remaining_num,len(img_idx),120,120,3))
+            batch_labels = np.zeros((remaining_num, 5))
+            for folder in range(remaining_num):
+                imgs = os.listdir(source_path+'/'+ t[folder + (num_full_batches*batch_size)].split(';')[0]) # read all the images in the folder
+                imgs = sorted(imgs)
 
-                # Calculate the magnitude of the vector
-                pixel_vector_norm = np.sqrt(image_resized[:,:,0]**2 + image_resized[:,:,1]**2 + image_resized[:,:,2]**2)
-                # Avoid division by zero
-                pixel_vector_norm[pixel_vector_norm==0] = 1
+                for idx,item in enumerate(img_idx):
+                    image_orig = imageio.v3.imread(source_path+'/'+t[folder + (num_full_batches*batch_size)].strip().split(';')[0]+'/'+imgs[item]).astype(np.float32)
+                    
+                    #scale image
+                    image_scaled = image_orig/255
+                    # crop the image
+                    image_cropped = crop_image(image_scaled, image_scaled.shape[:2])
+                    # resize the image
+                    image_resized = resize(image_cropped, (120, 120))
 
-                batch_data[folder,idx,:,:,0] = image_resized[:,:,0] / pixel_vector_norm #normalise and feed in the image
-                batch_data[folder,idx,:,:,1] = image_resized[:,:,1] / pixel_vector_norm #normalise and feed in the image
-                batch_data[folder,idx,:,:,2] = image_resized[:,:,2] / pixel_vector_norm #normalise and feed in the image
+                    # Calculate the magnitude of the vector
+                    pixel_vector_norm = np.sqrt(image_resized[:,:,0]**2 + image_resized[:,:,1]**2 + image_resized[:,:,2]**2)
+                    # Avoid division by zero
+                    pixel_vector_norm[pixel_vector_norm==0] = 1
 
-            batch_labels[folder, int(t[folder + (num_full_batches*batch_size)].strip().split(';')[2])] = 1
-        yield batch_data, batch_labels
+                    batch_data[folder,idx,:,:,0] = image_resized[:,:,0] / pixel_vector_norm #normalise and feed in the image
+                    batch_data[folder,idx,:,:,1] = image_resized[:,:,1] / pixel_vector_norm #normalise and feed in the image
+                    batch_data[folder,idx,:,:,2] = image_resized[:,:,2] / pixel_vector_norm #normalise and feed in the image
+
+                batch_labels[folder, int(t[folder + (num_full_batches*batch_size)].strip().split(';')[2])] = 1
+            yield batch_data, batch_labels
  
 # generator(train_path, folders, 10)      
 # %% [markdown]
 #region tesing
 # ### Test the Generator
 # %%
+# %%script echo "skipped: open later"
 # Test the generator function
-source_path = train_dir
-folder_list = train_doc
-batch_size = 10
-
+import itertools
+import math
 # Initialize the generator
 #tag explain # folder_list is basically the data within the csv file(folder_name;gesture_name;int_value)
-gen = generator(source_path, folder_list, batch_size)
+gen = generator(train_dir, train_doc, batch_size)
 
 # Create an empty dataframe to store batch data and labels
 df = pd.DataFrame(columns=['batch_data shape', 'batch_labels shape'])
 
-# Iterate over all batches in gen
-for batch_data, batch_labels in gen:
-    # Create a temporary dataframe for the current batch
-    temp_df = pd.DataFrame({
-        'batch_data shape': [list(batch_data.shape)],
-        'batch_labels shape': [list(batch_labels.shape)],
-    })
+# counter = 0
+# for batch_data, batch_labels in gen:
+#     # Create a temporary dataframe for the current batch
+#     temp_df = pd.DataFrame({
+#         'batch_data shape': [list(batch_data.shape)],
+#         'batch_labels shape': [list(batch_labels.shape)],
+#     })
+#     # Append the temporary dataframe to the main dataframe
+#     df = pd.concat([df, temp_df], ignore_index=True)
+#     counter += 1
+#     if counter >= 10:  # Change 10 to the desired number of batches
+#         break
+# # Display the dataframe
+# display(df)
 
-    # Append the temporary dataframe to the main dataframe
-    df = pd.concat([df, temp_df], ignore_index=True)
-
-# Display the dataframe
+df = pd.concat([pd.DataFrame({
+    'batch_data shape': [list(batch_data.shape)],
+    'batch_labels shape': [list(batch_labels.shape)],
+}) for batch_data, batch_labels in itertools.islice(gen, math.ceil(len(train_doc) / batch_size))], ignore_index=True)
 display(df)
+
 #endregion tesing
 #endregion final_generator
 # %% [markdown]
@@ -599,6 +614,418 @@ num_val_sequences = len(val_doc)
 print('# validation sequences =', num_val_sequences)
 num_epochs = 10 # choose the number of epochs
 print ('# epochs =', num_epochs)
+# %% [markdown]
+# ## Test model
+# %% [markdown]
+# ### Initializing
+# %%
+#region test_model
+# import the necessary packages
+import keras
+import tensorflow
+import numpy as np
+from keras.models import Sequential
+from keras.layers import Conv3D, MaxPooling3D, Flatten, Dense, Activation, Input
+from keras.layers import Dropout, Input, BatchNormalization
+
+from keras.optimizers import Adam
+from keras.regularizers import l2
+
+# initialize the parameters
+img_idx, x, y, z = init_gen_params(7,120,120)
+
+input_shape = (x, y, z, 3)
+num_classes = 5  # Example number of classes
+
+import math
+
+steps_per_epoch = math.ceil(num_train_sequences / batch_size)
+validation_steps = math.ceil(num_val_sequences / batch_size)
+
+
+print("steps_per_epoch: ", steps_per_epoch)
+print("validation_steps: ", validation_steps)
+
+train_gen = generator(train_dir, train_doc, batch_size)
+val_gen = generator(val_path, val_doc, batch_size)
+# %% [markdown]
+%%script echo "skipped"
+'''
+# ### model 1
+# %%
+%%script echo "skipped"
+
+# Define the model
+
+def create_lightweight_3dcnn(input_shape, num_classes):
+    keras.backend.clear_session()
+    
+    model = Sequential()
+
+    # First layer group containing Conv3D, BatchNormalization, and MaxPooling3D
+    model.add(Conv3D(64, (3, 3, 3), kernel_regularizer=l2(0.01), input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    # Second layer group with smaller filters but more depth
+    model.add(Conv3D(128, (1, 3, 3), kernel_regularizer=l2(0.01)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    # Flatten the output to feed into the Dense layer
+    model.add(Flatten())
+
+    # Add two fully connected layers with dropout for regularization
+    model.add(Dense(256, activation='relu'))
+    #tag consider # model.add(Dropout(0.5))
+    model.add(Dense(128, activation='relu'))
+    # model.add(Dropout(0.5))
+
+    # Final output layer with softmax activation for classification
+    model.add(Dense(num_classes, activation='softmax'))
+
+    return model
+
+# Assuming the input video shape is (frames, height, width, channels)
+# For example, (16, 120, 160, 3) for 16 frames of 120x160 RGB images
+input_shape = (x, y, z, 3)
+num_classes = 10  # Example number of classes
+
+keras.backend.clear_session()
+model = create_lightweight_3dcnn(input_shape, num_classes)
+
+# Compile the model
+optimizer = Adam(learning_rate=1e-4)
+model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+
+# Summary of the model
+model.summary()
+'''
+'''# %% [markdown]
+# ### model 2
+# %%
+
+
+def create_3d_cnn (input_shape, num_classes):
+    keras.backend.clear_session()
+
+    global train_gen
+    global val_gen
+
+    train_gen = generator(train_dir, train_doc, batch_size)
+    val_gen = generator(val_path, val_doc, batch_size)
+
+    model = Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv3D(16, kernel_size=(3, 3, 3), activation='relu',padding="same", input_shape=input_shape))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+    model.add(Conv3D(32, kernel_size=(3, 3, 3), activation='relu', padding="same"))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+    model.add(Conv3D(64, kernel_size=(3, 3, 3), activation='relu', padding="same"))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    optimizer = Adam(learning_rate=0.001)
+    #  Compile the model
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    # Summary of the model
+    model.summary()
+    return model
+# optimizer = Adam(learning_rate=0.001)
+# # Compile the model
+# model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+
+# # Summary of the model
+# model.summary()
+# %% [markdown]
+# #### Execution
+
+# %%
+# Train the model
+model = create_3d_cnn(input_shape, num_classes)
+
+history = model.fit(train_gen, steps_per_epoch=steps_per_epoch, 
+                    epochs=num_epochs, validation_data=val_gen, 
+                    validation_steps=validation_steps, verbose=1)
+
+# Evaluate the model
+loss, metrics = model.evaluate(val_gen, steps=validation_steps)
+print(f'Test loss: {loss:.3f}, Test metrics: {metrics}')'''
+# %%
+def create_3d_cnn (input_shape, num_classes):
+    keras.backend.clear_session()
+
+    global train_gen
+    global val_gen
+
+    train_gen = generator(train_dir, train_doc, batch_size)
+    val_gen = generator(val_path, val_doc, batch_size)
+
+    model = Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv3D(16, kernel_size=(3, 3, 3), input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    model.add(Conv3D(32, kernel_size=(3, 3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    model.add(Conv3D(64, kernel_size=(3, 3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    model.add(Flatten())
+    model.add(Dense(128)
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    optimizer = Adam(learning_rate=0.001)
+    #  Compile the model
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    # Summary of the model
+    model.summary()
+    return model
+# %%
+# Train the model
+model = create_3d_cnn(input_shape, num_classes)
+
+history = model.fit(train_gen, steps_per_epoch=steps_per_epoch, 
+                    epochs=num_epochs, validation_data=val_gen, 
+                    validation_steps=validation_steps, verbose=1)
+
+# Evaluate the model
+loss, metrics = model.evaluate(val_gen, steps=validation_steps)
+print(f'Test loss: {loss:.3f}, Test metrics: {metrics}')
+# %%
+def create_3d_cnn (input_shape, num_classes):
+    keras.backend.clear_session()
+
+    global train_gen
+    global val_gen
+
+    train_gen = generator(train_dir, train_doc, batch_size)
+    val_gen = generator(val_path, val_doc, batch_size)
+
+    model = Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv3D(16, kernel_size=(3, 3, 3), input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    model.add(Conv3D(32, kernel_size=(3, 3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+
+    model.add(Conv3D(64, kernel_size=(3, 3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+
+    model.add(Flatten())
+    model.add(Dense(128))
+    # model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    optimizer = Adam(learning_rate=0.001)
+    #  Compile the model
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    # Summary of the model
+    model.summary()
+    return model
+# %%
+# Train the model
+model = create_3d_cnn(input_shape, num_classes)
+
+history = model.fit(train_gen, steps_per_epoch=steps_per_epoch, 
+                    epochs=num_epochs, validation_data=val_gen, 
+                    validation_steps=validation_steps, verbose=1)
+
+# Evaluate the model
+loss, metrics = model.evaluate(val_gen, steps=validation_steps)
+print(f'Test loss: {loss:.3f}, Test metrics: {metrics}')
+# %%
+def create_3d_cnn (input_shape, num_classes):
+    keras.backend.clear_session()
+
+    global train_gen
+    global val_gen
+
+    train_gen = generator(train_dir, train_doc, batch_size)
+    val_gen = generator(val_path, val_doc, batch_size)
+
+    model = Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv3D(8, kernel_size=(3, 3, 3), input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    model.add(Conv3D(16, kernel_size=(3, 3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+
+    model.add(Conv3D(32, kernel_size=(3, 3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+
+    model.add(Flatten())
+    model.add(Dense(64))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    optimizer = Adam(learning_rate=0.001)
+    #  Compile the model
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    # Summary of the model
+    model.summary()
+    return model
+# %%
+# Train the model
+model = create_3d_cnn(input_shape, num_classes)
+
+history = model.fit(train_gen, steps_per_epoch=steps_per_epoch, 
+                    epochs=num_epochs, validation_data=val_gen, 
+                    validation_steps=validation_steps, verbose=1)
+
+# Evaluate the model
+loss, metrics = model.evaluate(val_gen, steps=validation_steps)
+print(f'Test loss: {loss:.3f}, Test metrics: {metrics}')
+# %%
+# Train the model
+model = create_3d_cnn(input_shape, num_classes)
+
+history = model.fit(train_gen, steps_per_epoch=steps_per_epoch, 
+                    epochs=num_epochs, validation_data=val_gen, 
+                    validation_steps=validation_steps, verbose=1)
+
+# Evaluate the model
+loss, metrics = model.evaluate(val_gen, steps=validation_steps)
+print(f'Test loss: {loss:.3f}, Test metrics: {metrics}')
+# %%
+def create_3d_cnn (input_shape, num_classes):
+    keras.backend.clear_session()
+
+    global train_gen
+    global val_gen
+
+    train_gen = generator(train_dir, train_doc, batch_size)
+    val_gen = generator(val_path, val_doc, batch_size)
+
+    model = Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv3D(16, kernel_size=(3, 3, 3), input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    model.add(Conv3D(32, kernel_size=(3, 3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(MaxPooling3D(pool_size=(1, 2, 2)))
+
+    model.add(Flatten())
+    model.add(Dense(64))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    optimizer = Adam(learning_rate=0.001)
+    #  Compile the model
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    # Summary of the model
+    model.summary()
+    return model
+# %%
+# Train the model
+model = create_3d_cnn(input_shape, num_classes)
+
+history = model.fit(train_gen, steps_per_epoch=steps_per_epoch, 
+                    epochs=num_epochs, validation_data=val_gen, 
+                    validation_steps=validation_steps, verbose=1)
+
+# Evaluate the model
+loss, metrics = model.evaluate(val_gen, steps=validation_steps)
+print(f'Test loss: {loss:.3f}, Test metrics: {metrics}')
+
+# %%
+LR = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
+                              patience=5, min_lr=0.001) # write the REducelronplateau code here
+callbacks_list = [checkpoint, LR]
+#region codellama_70b
+# %% [markdown]
+'''
+# ## Testing the model
+# Now that you have trained the model, it's time to test it. You can use the `test_generator` to test the model.
+
+test_generator = generator(test_path, test_doc, batch_size)
+
+# Let us now load the best model and test it.
+
+model_name = 'model_init_' + str(curr_dt_time).replace(' ','').replace(':','_') + '/'
+model.load_weights(model_name + 'model-00000-0.00000-0.00000-0.00000-0.00000.weights.h5')
+
+# Let us now test the model.
+
+model.evaluate_generator(test_generator, steps=num_test_sequences//batch_size)
+
+# ## Predicting on new data
+# Now that you have trained the model, it's time to predict on new data. You can use the `predict_generator` to predict on new data.
+
+# Let us now load the best model and predict on new data.
+model_name = 'model_init_' + str(curr_dt_time).replace(' ','').replace(':','_') + '/'
+model.load_weights(model_name + 'model-00000-0.00000-0.00000-0.00000-0.00000.weights.h5')
+
+# Let us now predict on new data.
+model.predict_generator(generator(), steps=)
+
+# ## Visualizing the model
+# Now that you have trained the model, it's time to visualize it. You can use the `plot_model` function to visualize the model.
+from keras.utils import plot_model
+plot_model(model, to_file='model.png')
+# ## Saving the model
+# Now that you have trained the model, it's time to save it. You can use the `save` function to save the model.
+model.save('model.h5')
+# ## Loading the model
+# Now that you have trained and saved the model, it's time to load it. You can use the `load_model` function to load the model.
+from keras.models import load_model
+model = load_model('model.h5')
+# ## Summarizing the model
+# Now that you have loaded the model, it's time to summarize it. You can use the `summary` function to summarize the model.
+model.summary()
+# ## Visualizing the model
+# Now that you have loaded the model, it's time to visualize it. You can use the `plot_model` function to visualize the model.
+from keras.utils import plot_model
+plot_model(model, to_file='model.png')
+# ## Predicting on new data
+# Now that you have loaded the model, it's time to predict on new data. You can use the `predict` function to predict on new data.
+model.predict(x_test)
+# ## Evaluating the model
+# Now that you have loaded the model, it's time to evaluate the model. You can use the `evaluate` function to evaluate the model.
+model.evaluate(x_test, y_test)
+# ## Saving the model
+# Now that you have trained the model, it's time to save it. You can use the `save` function to save the model.
+model.save('model.h5')'''
+#endregion codellama_70b
+#endregion test_model
 
 # %% [markdown]
 # ## Model
@@ -613,11 +1040,11 @@ from keras import optimizers
 
 #write your model here
 model = Sequential()
-model.add(Conv3D(32, kernel_size=(1, 3, 3), activation='relu',padding="same", input_shape=(x, y, z, 3)))
+model.add(Conv3D(16, kernel_size=(3, 3, 3), activation='relu',padding="same", input_shape=(x, y, z, 3)))
 model.add(MaxPooling3D(pool_size=(1, 2, 2)))
-model.add(Conv3D(64, kernel_size=(1, 3, 3), activation='relu', padding="same"))
+model.add(Conv3D(32, kernel_size=(3, 3, 3), activation='relu', padding="same"))
 model.add(MaxPooling3D(pool_size=(1, 2, 2)))
-model.add(Conv3D(128, kernel_size=(1, 3, 3), activation='relu',padding="same"))
+model.add(Conv3D(64, kernel_size=(3, 3, 3), activation='relu', padding="same"))
 model.add(MaxPooling3D(pool_size=(1, 2, 2)))
 model.add(Flatten())
 model.add(Dense(128, activation='relu'))
@@ -638,6 +1065,7 @@ print (model.summary())
 # %%
 train_generator = generator(train_path, train_doc, batch_size)
 val_generator = generator(val_path, val_doc, batch_size)
+
 
 # %%
 model_name = 'model_init' + '_' + str(curr_dt_time).replace(' ','').replace(':','_') + '/'
@@ -687,13 +1115,21 @@ else:
 
 # %%
 #tag error 
+
 '''The fit_generator method has been deprecated in TensorFlow 2.1.0 and later versions. Instead, you should use the fit method, which now supports generators'''
-model.fit(train_generator, steps_per_epoch=steps_per_epoch, epochs=num_epochs, verbose=1, 
+'''model.fit(train_generator, steps_per_epoch=steps_per_epoch, epochs=num_epochs, verbose=1, 
                     callbacks=callbacks_list, validation_data=val_generator, 
+                    validation_steps=validation_steps, class_weight=None, initial_epoch=0)'''
+'''
+The error message indicates that the fit() method of the model object does not accept a workers argument. 
+The workers argument is used to specify the number of worker subprocesses to use for data preloading. 
+It is only available in the fit_generator() method, which has been deprecated in TensorFlow 2.x and replaced with the fit() method.
+If you still want to use multiple worker processes for data preloading, you can use the use_multiprocessing argument instead:
+'''
+# model.fit(train_generator, epochs=num_epochs, verbose=1,
+#                     callbacks=callbacks_list, validation_data=val_generator, 
+#                     validation_steps=validation_steps, class_weight=None, initial_epoch=0)
+model.fit(train_gen, epochs=num_epochs, verbose=1,
+                     validation_data=val_gen, 
                     validation_steps=validation_steps, class_weight=None, initial_epoch=0)
-
-
-
-
-
 # %%
